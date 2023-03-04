@@ -1,0 +1,13 @@
+**/__pycache__
+resnet50-19c8e357.pth
+nogit/
+pbr/
+models/
+scripts/
+
+#MY:
+apex
+data
+checkpoints
+pretrained
+.idea
