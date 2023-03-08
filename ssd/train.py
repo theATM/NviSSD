@@ -19,6 +19,8 @@ import time
 from apex import amp
 
 def train_loop(model, loss_func, scaler, epoch, optim, train_dataloader, val_dataloader, encoder, iteration, logger, args, mean, std):
+    mean_loss = 0.0
+    self_iteration = 0
     for nbatch, data in enumerate(train_dataloader):
         img = data[0][0][0]
         bbox = data[0][1][0]
@@ -54,6 +56,7 @@ def train_loop(model, loss_func, scaler, epoch, optim, train_dataloader, val_dat
             glabel = Variable(label, requires_grad=False)
 
             loss = loss_func(ploc, plabel, gloc, glabel)
+            mean_loss += loss.item()
 
         if args.warmup is not None:
             warmup(optim, args.warmup, iteration, args.learning_rate)
@@ -66,8 +69,9 @@ def train_loop(model, loss_func, scaler, epoch, optim, train_dataloader, val_dat
         if args.local_rank == 0:
             logger.update_iter(epoch, iteration, loss.item())
         iteration += 1
+        self_iteration += 1
 
-    return iteration
+    return iteration, mean_loss/self_iteration
 
 
 def benchmark_train_loop(model, loss_func, scaler, epoch, optim, train_dataloader, val_dataloader, encoder, iteration, logger, args, mean, std):
@@ -186,7 +190,14 @@ def load_checkpoint(model, checkpoint):
 
     # remove proceeding 'N.' from checkpoint that comes from DDP wrapper
     saved_model = od["model"]
-    model.load_state_dict(saved_model)
+
+    #Filter differently shaped weights:
+    filtered = [ k for k in model.state_dict() if (model.state_dict()[k].shape == saved_model[k].shape)==False]
+    for filtr in filtered:
+        print(f"Omitted loading the {filtr} as the weight shape mismatch: {saved_model[filtr].shape} != {model.state_dict()[filtr].shape}")
+        saved_model.pop(filtr)
+
+    model.load_state_dict(saved_model, strict=False)
 
 
 def tencent_trick(model):

@@ -55,31 +55,37 @@ def make_parser():
                                         " on COCO")
     parser.add_argument('--data', '-d', type=str, default='/data/coco', required=True,
                         help='path to test and training data files')
-    parser.add_argument('--year', '-d', type=str, default='', required=False,
+    parser.add_argument('--year', '-y', type=str, default='', required=False,
                         help='if using coco please specify the year (2014 or 2017)')
     parser.add_argument('--epochs', '-e', type=int, default=65,
                         help='number of epochs for training')
     parser.add_argument('--batch-size', '--bs', type=int, default=32,
                         help='number of examples for each iteration')
-    parser.add_argument('--eval-batch-size', '--ebs', type=int, default=32,
+    parser.add_argument('--eval-batch-size', '--ebs', type=int, default=2,
                         help='number of examples for each evaluation iteration')
+    parser.add_argument('--train-set-size', '--ts', type=int, default=32,
+                        help='number of images in the training set')
     parser.add_argument('--no-cuda', action='store_true',
                         help='use available GPUs')
     parser.add_argument('--seed', '-s', type=int,
                         help='manually set random seed for torch')
     parser.add_argument('--checkpoint', type=str, default=None,
                         help='path to model checkpoint file')
+    parser.add_argument('--weights', type=str, default=None,
+                        help='path to model initial weights')
     parser.add_argument('--torchvision-weights-version', type=str, default="IMAGENET1K_V2",
                         choices=['IMAGENET1K_V1', 'IMAGENET1K_V2', 'DEFAULT'],
                         help='The torchvision weights version to use when --checkpoint is not specified')
     parser.add_argument('--save', type=str, default=None,
                         help='save model checkpoints in the specified directory')
+    parser.add_argument('--save-interval', type=int, default=10)
     parser.add_argument('--mode', type=str, default='training',
                         choices=['training', 'evaluation', 'benchmark-training', 'benchmark-inference'])
-    parser.add_argument('--evaluation', nargs='*', type=int, default=[21, 31, 37, 42, 48, 53, 59, 64],
+    parser.add_argument('--evaluation', nargs='*',  type=int, default=[21, 31, 37, 42, 48, 53, 59, 64],
                         help='epochs at which to evaluate')
-    parser.add_argument('--multistep', nargs='*', type=int, default=[43, 54],
+    parser.add_argument('--multistep', nargs='*', type=str, default=[21, 43, 54],
                         help='epochs at which to decay learning rate')
+    parser.add_argument('--num-classes', type=int, default=81)
 
     # Hyperparameters
     parser.add_argument('--learning-rate', '--lr', type=float, default=2.6e-3,
@@ -88,6 +94,8 @@ def make_parser():
                         help='momentum argument for SGD optimizer')
     parser.add_argument('--weight-decay', '--wd', type=float, default=0.0005,
                         help='momentum argument for SGD optimizer')
+    parser.add_argument("--freeze", dest='freeze', type=int, default=None,
+                        help="Enable some weights freezing.")
 
     parser.add_argument('--warmup', type=int, default=None)
     parser.add_argument('--benchmark-iterations', type=int, default=20, metavar='N',
@@ -165,9 +173,26 @@ def train(train_loop_func, logger, args):
     val_dataset = get_val_dataset(args)
     val_dataloader = get_val_dataloader(val_dataset, args)
 
-    ssd300 = SSD300(backbone=ResNet(backbone=args.backbone,
+    ssd300 = SSD300(num_classes=args.num_classes, backbone=ResNet(backbone=args.backbone,
                                     backbone_path=args.backbone_path,
                                     weights=args.torchvision_weights_version))
+    if args.weights is not None:
+        if os.path.isfile(args.weights):
+            load_checkpoint(ssd300.module if args.distributed else ssd300, args.weights)
+        else:
+            print('Provided weights are not path to a file')
+            return
+
+
+    if args.freeze is not None:
+        # Freeze
+        freeze = [f'feature_extractor.feature_extractor.{x}' for x in range( args.freeze )]  # max 6  - layers to freeze
+        for k, v in ssd300.named_parameters():
+            v.requires_grad = True  # train all layers
+            if any(x in k for x in freeze):
+                print(f'freezing {k}')
+                v.requires_grad = False
+
     args.learning_rate = args.learning_rate * args.N_gpu * (args.batch_size / 32)
     start_epoch = 0
     iteration = 0
@@ -212,16 +237,17 @@ def train(train_loop_func, logger, args):
 
     for epoch in range(start_epoch, args.epochs):
         start_epoch_time = time.time()
-        iteration = train_loop_func(ssd300, loss_func, scaler,
-                                    epoch, optimizer, train_loader, val_dataloader, encoder, iteration,
+        iteration_train, mean_loss = train_loop_func(ssd300, loss_func, scaler,
+                                    epoch, optimizer, train_loader, val_dataloader, encoder, 0,
                                     logger, args, mean, std)
+        iteration += iteration_train
         if args.mode in ["training", "benchmark-training"]:
             scheduler.step()
         end_epoch_time = time.time() - start_epoch_time
         total_time += end_epoch_time
 
         if args.local_rank == 0:
-            logger.update_epoch_time(epoch, end_epoch_time)
+            logger.update_epoch_time(epoch, end_epoch_time, mean_loss)
 
         if epoch in args.evaluation:
             acc = evaluate(ssd300, val_dataloader, cocoGt, encoder, inv_map, args)
@@ -229,7 +255,7 @@ def train(train_loop_func, logger, args):
             if args.local_rank == 0:
                 logger.update_epoch(epoch, acc)
 
-        if args.save and args.local_rank == 0:
+        if args.save and args.local_rank == 0 and (epoch % args.save_interval == 0 or epoch == args.epochs):
             print("saving model...")
             obj = {'epoch': epoch + 1,
                    'iteration': iteration,

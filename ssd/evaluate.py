@@ -59,6 +59,7 @@ def evaluate(model, coco, cocoGt, encoder, inv_map, args):
                 htot, wtot = img_size[0][idx].item(), img_size[1][idx].item()
                 loc, label, prob = [r.cpu().numpy() for r in result]
                 for loc_, label_, prob_ in zip(loc, label, prob):
+                    # print(f"Key - {label_}")
                     ret.append([img_id[idx], loc_[0] * wtot, \
                                 loc_[1] * htot,
                                 (loc_[2] - loc_[0]) * wtot,
@@ -114,9 +115,9 @@ def evaluate(model, coco, cocoGt, encoder, inv_map, args):
         print("")
         print("Predicting Ended, total time: {:.2f} s".format(time.time() - start))
 
-    cocoDt = cocoGt.loadRes(final_results, use_ext=True)
+    cocoDt = cocoGt.loadRes(final_results)
 
-    E = COCOeval(cocoGt, cocoDt, iouType='bbox', use_ext=True)
+    E = COCOeval(cocoGt, cocoDt, iouType='bbox')
     E.evaluate()
     E.accumulate()
     if args.local_rank == 0:

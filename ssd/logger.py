@@ -109,10 +109,10 @@ class Logger:
         self.add_to_summary(data)
         DLLogger.log((self.epoch,), data)
 
-    def update_epoch_time(self, epoch, time):
+    def update_epoch_time(self, epoch, time, loss):
         self.epoch = epoch
         self.train_epoch_time_logger.update(epoch, time)
-        DLLogger.log((self.epoch,), { 'time': time })
+        DLLogger.log((self.epoch,), { 'time': time , 'mean loss' : loss})
 
     def print_results(self):
         return self.train_loss_logger.data, self.val_acc_logger.data, self.train_epoch_time_logger
