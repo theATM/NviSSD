@@ -15,11 +15,12 @@
 from torch.autograd import Variable
 import torch
 import time
+import numpy as np
 
 from apex import amp
 
 def train_loop(model, loss_func, scaler, epoch, optim, train_dataloader, val_dataloader, encoder, iteration, logger, args, mean, std):
-    mean_loss = 0.0
+    mean_loss = np.longdouble(0.0)
     self_iteration = 0
     for nbatch, data in enumerate(train_dataloader):
         img = data[0][0][0]

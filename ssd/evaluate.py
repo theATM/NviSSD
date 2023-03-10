@@ -59,7 +59,8 @@ def evaluate(model, coco, cocoGt, encoder, inv_map, args):
                 htot, wtot = img_size[0][idx].item(), img_size[1][idx].item()
                 loc, label, prob = [r.cpu().numpy() for r in result]
                 for loc_, label_, prob_ in zip(loc, label, prob):
-                    # print(f"Key - {label_}")
+                    # if  label_ <= 0 or label_ >= 5:
+                    # print(f"Key - {label_}, mapping {inv_map[label_]}")
                     ret.append([img_id[idx], loc_[0] * wtot, \
                                 loc_[1] * htot,
                                 (loc_[2] - loc_[0]) * wtot,
