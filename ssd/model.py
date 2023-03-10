@@ -115,13 +115,16 @@ class SSD300(nn.Module):
         return locs, confs
 
     def forward(self, x):
+        # Predict features from the back bone model - resnet50:
         x = self.feature_extractor(x)
 
+        # Add five layers with additional blocks:
         detection_feed = [x]
         for l in self.additional_blocks:
             x = l(x)
             detection_feed.append(x)
 
+        # Overall list of 6 input block features (backbone feature extractor block + 5 additional blocks)
         # Feature Map 38x38x4, 19x19x6, 10x10x6, 5x5x6, 3x3x4, 1x1x4
         locs, confs = self.bbox_view(detection_feed, self.loc, self.conf)
 

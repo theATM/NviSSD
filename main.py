@@ -187,6 +187,7 @@ def train(train_loop_func, logger, args):
     if args.freeze is not None:
         # Freeze
         freeze = [f'feature_extractor.feature_extractor.{x}' for x in range( args.freeze )]  # max 6  - layers to freeze
+        freeze.extend([f'additional_blocks.{x}.0.weight' for x in range( 5 )])
         for k, v in ssd300.named_parameters():
             v.requires_grad = True  # train all layers
             if any(x in k for x in freeze):
@@ -271,6 +272,17 @@ def train(train_loop_func, logger, args):
             torch.save(obj, save_path)
             logger.log('model path', save_path)
         train_loader.reset()
+
+        #if args.freeze is not None and epoch != 0 and epoch % 25 == 0 and epoch != args.epochs:
+        #    # Freeze
+        #    freeze = [f'feature_extractor.feature_extractor.{x}' for x in
+        #              range(args.freeze - int(epoch % 25))]  # max 6  - layers to freeze
+        #    for k, v in ssd300.named_parameters():
+        #        v.requires_grad = True  # train all layers
+        #        if any(x in k for x in freeze):
+        #            print(f'freezing {k}')
+        #            v.requires_grad = False
+
     DLLogger.log((), { 'total time': total_time })
     logger.log_summary()
 
