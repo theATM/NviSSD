@@ -255,7 +255,7 @@ def train(train_loop_func, logger, args):
             if args.local_rank == 0:
                 logger.update_epoch(epoch, acc)
 
-        if args.save and args.local_rank == 0 and (epoch % args.save_interval == 0 or epoch == args.epochs):
+        if args.save and args.local_rank == 0 and (epoch % args.save_interval == 0 or epoch == args.epochs - 1):
             print("saving model...")
             obj = {'epoch': epoch + 1,
                    'iteration': iteration,
