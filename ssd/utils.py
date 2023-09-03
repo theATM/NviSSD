@@ -168,7 +168,7 @@ class Encoder(object):
             output.append(self.decode_single(bbox, prob, criteria, max_output))
         return output
 
-    # perform non-maximum suppression
+    # perform non-maximum suppression #TODO : NMS!!!!!
     def decode_single(self, bboxes_in, scores_in, criteria, max_output, max_num=200):
         # Reference to https://github.com/amdegroot/ssd.pytorch
 
