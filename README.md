@@ -1,7 +1,14 @@
 # The Fork of the SSD300 v1.1 For PyTorch
 
-This repository provides a script and recipe to train the SSD300 v1.1 model to achieve state of the art accuracy, and is tested and maintained by NVIDIA.
+This repository provides a (crude) script and recipe to train the SSD300 v1.1 model to achieve state of the art accuracy, and is tested and maintained by NVIDIA.
 https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Detection/SSD
+
+Training can be done using the main.py script with example parameters:
+
+main.py --data ./data/rsdcoco --batch-size 32 --eval-batch-size 16 --freeze 7 <br>
+--epochs 100 --amp --num-workers 5 --log-interval 20 --save ./checkpoints/rsd --save-interval 5 <br>
+--weights ./pretrained/coco/nvidia_ssdpyt_amp_200703_coco2017.pt --num-classes 6 --train-set-size 7213 <br>
+--evaluation 0 5 10 25 50 75 100 150 199 --multistep 25 50 100 150 <br>
 
 ## Table Of Contents
 - [Model overview](#model-overview)
