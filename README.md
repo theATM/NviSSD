@@ -87,7 +87,9 @@ Despite the changes described in the previous section,
 the overall architecture, as described in the following diagram, has not changed.
 
 <p align="center">
-  <img width="90%" src="./img/ssd_diagram.png" />
+   
+  ![ssd_diagram](https://github.com/theATM/NviSSD/assets/48883111/e676cb89-b768-47e8-be04-f0c5d8ec602c)
+  
   <br>
 Figure 1. The architecture of a Single Shot MultiBox Detector model. Image has been taken from the <a href="https://arxiv.org/abs/1512.02325">Single Shot MultiBox Detector paper</a>.
 </p>
@@ -619,7 +621,8 @@ Due to smaller size, mixed precision models can be trained with bigger batches. 
 
 Here are example graphs of FP32, TF32 and AMP training on 8 GPU configuration:
 
-![TrainingLoss](./img/training_loss.png)
+![paperssd_training_loss](https://github.com/theATM/NviSSD/assets/48883111/9cf342a9-c8f2-4e53-a72d-88a875197e78)
+
 
 ##### Training stability test
 
