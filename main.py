@@ -25,7 +25,7 @@ from ssd.utils import dboxes300_coco, Encoder
 from ssd.logger import Logger, BenchLogger
 from ssd.evaluate import evaluate
 from ssd.train import train_loop, tencent_trick, load_checkpoint, benchmark_train_loop, benchmark_inference_loop
-from ssd.data import get_train_loader, get_val_dataset, get_val_dataloader, get_coco_ground_truth
+from ssd.data import get_train_loader, get_val_dataset, get_val_dataloader, get_test_dataset,get_test_dataloader, get_coco_ground_truth
 
 import dllogger as DLLogger
 
@@ -80,7 +80,7 @@ def make_parser():
                         help='save model checkpoints in the specified directory')
     parser.add_argument('--save-interval', type=int, default=10)
     parser.add_argument('--mode', type=str, default='training',
-                        choices=['training', 'evaluation', 'benchmark-training', 'benchmark-inference'])
+                        choices=['training', 'evaluation', 'benchmark-training', 'benchmark-inference','evaluation-test'])
     parser.add_argument('--evaluation', nargs='*',  type=int, default=[21, 31, 37, 42, 48, 53, 59, 64],
                         help='epochs at which to evaluate')
     parser.add_argument('--multistep', nargs='*', type=str, default=[21, 43, 54],
@@ -167,11 +167,15 @@ def train(train_loop_func, logger, args):
     dboxes = dboxes300_coco()
     encoder = Encoder(dboxes)
     cocoGt = get_coco_ground_truth(args)
+    cocoGt_test = get_coco_ground_truth(args,mode='test')
 
     train_loader = get_train_loader(args, args.seed - 2**31)
 
     val_dataset = get_val_dataset(args)
     val_dataloader = get_val_dataloader(val_dataset, args)
+
+    test_dataset = get_test_dataset(args)
+    test_dataloader = get_test_dataloader(test_dataset, args)
 
     ssd300 = SSD300(num_classes=args.num_classes, backbone=ResNet(backbone=args.backbone,
                                     backbone_path=args.backbone_path,
@@ -215,7 +219,7 @@ def train(train_loop_func, logger, args):
             load_checkpoint(ssd300.module if args.distributed else ssd300, args.checkpoint)
             checkpoint = torch.load(args.checkpoint,
                                     map_location=lambda storage, loc: storage.cuda(torch.cuda.current_device()))
-            if args.mode != 'evaluation':
+            if args.mode != 'evaluation' and args.mode != 'evaluation-test':
                 start_epoch = checkpoint['epoch']
                 iteration = checkpoint['iteration']
                 scheduler.load_state_dict(checkpoint['scheduler'])
@@ -232,6 +236,11 @@ def train(train_loop_func, logger, args):
         acc = evaluate(ssd300, val_dataloader, cocoGt, encoder, inv_map, args)
         if args.local_rank == 0:
             print('Model precision {} mAP'.format(acc))
+        return
+    elif args.mode == 'evaluation-test':
+        acc = evaluate(ssd300, test_dataloader, cocoGt_test, encoder, inv_map, args)
+        if args.local_rank == 0:
+            print('Model Test precision {} mAP'.format(acc))
         return
 
     scaler = torch.cuda.amp.GradScaler(enabled=args.amp)

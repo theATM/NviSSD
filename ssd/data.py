@@ -69,7 +69,32 @@ def get_val_dataloader(dataset, args):
 
     return val_dataloader
 
-def get_coco_ground_truth(args):
-    val_annotate = os.path.join(args.data, f"annotations/instances_val{args.year}.json")
+def get_test_dataset(args):
+    dboxes = dboxes300_coco()
+    val_trans = SSDTransformer(dboxes, (300, 300), val=True)
+
+    val_annotate = os.path.join(args.data, f"annotations/instances_test{args.year}.json")
+    val_coco_root = os.path.join(args.data, f"images/test{args.year}")
+
+    val_coco = COCODetection(val_coco_root, val_annotate, val_trans)
+    return val_coco
+
+
+def get_test_dataloader(dataset, args):
+    if args.distributed:
+        val_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+    else:
+        val_sampler = None
+
+    val_dataloader = DataLoader(dataset,
+                                batch_size=args.eval_batch_size,
+                                shuffle=False,  # Note: distributed sampler is shuffled :(
+                                sampler=val_sampler,
+                                num_workers=args.num_workers)
+
+    return val_dataloader
+
+def get_coco_ground_truth(args, mode = 'val'):
+    val_annotate = os.path.join(args.data, f"annotations/instances_{mode}{args.year}.json")
     cocoGt = COCO(annotation_file=val_annotate) # , use_ext=True)
     return cocoGt
