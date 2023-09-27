@@ -10,6 +10,19 @@ main.py --data ./data/rsdcoco --batch-size 32 --eval-batch-size 16 --freeze 7 <b
 --weights ./pretrained/coco/nvidia_ssdpyt_amp_200703_coco2017.pt --num-classes 6 --train-set-size 7213 <br>
 --evaluation 0 5 10 25 50 75 100 150 199 --multistep 25 50 100 150 <br>
 
+
+### Results of the Best SSD Model on the RSD-GOD dataset
+
+![image](https://github.com/theATM/NviSSD/assets/48883111/8fcacbbc-2b8c-4fe3-af86-00ea53bb7acb)
+
+
+### Detection Examples
+
+![image](https://github.com/theATM/NviSSD/assets/48883111/fa710736-d77c-4c72-b1ff-6adc23953370)
+
+
+
+
 ## Table Of Contents
 - [Model overview](#model-overview)
     * [Model architecture](#model-architecture)
