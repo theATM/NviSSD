@@ -1,7 +1,7 @@
 # The Fork of the SSD300 v1.1 For PyTorch
 
-This repository provides a (crude) script and recipe to train the SSD300 v1.1 model to achieve state-of-the-art accuracy, and is tested and maintained by NVIDIA.
-https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Detection/SSD
+
+It is a part of the AirDetection study. The Main repo can be found [under this link](https://github.com/theATM/AirDetection). Original SSD300 Repository [Here](https://github.com/NVIDIA/DeepLearningExamples/tree/master/PyTorch/Detection/SSD)
 
 Training can be done using the main.py script with example parameters:
 
